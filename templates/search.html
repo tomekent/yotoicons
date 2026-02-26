@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Yoto Icon Search</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="/static/style.css">
+    
+</head>
+<body>
+    <div class="container">
+        <h1>Yoto Icon Search</h1>
+        <form id="searchForm" autocomplete="off">
+            <input type="text" id="query" name="query" placeholder="Search category, tag, etc.">
+            <button type="submit">Search</button>
+        </form>
+        <div class="shelf-bar" id="shelfBar" style="display:none;">
+            <div class="shelf" id="shelf"></div>
+        </div>
+        <div id="resultsCount" style="text-align:center; color:#4a5568; font-size:1.1rem;"></div>
+        <div class="grid" id="iconGrid"></div>
+        <div id="loading" style="display:none;">Loading...</div>
+    </div>
+    <div class="fixed-buttons" id="fixedButtons" style="display:none;">
+        <button id="downloadBtn" class="download-btn" disabled>
+            Download Selected (<span id="downloadCount">0</span>)
+        </button>
+        <button id="clearBtn" class="clear-btn" disabled>Clear</button>
+    </div>
+    <script>
+        let offset = 0;
+        const limit = 25;
+        let loading = false;
+        let total = null;
+        let query = "";
+        const grid = document.getElementById('iconGrid');
+        const loadingDiv = document.getElementById('loading');
+        const resultsCount = document.getElementById('resultsCount');
+        const searchInput = document.getElementById('query');
+        const form = document.getElementById('searchForm');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const shelfDiv = document.getElementById('shelf');
+        const shelfBar = document.getElementById('shelfBar');
+        const fixedButtons = document.getElementById('fixedButtons');
+        const downloadCount = document.getElementById('downloadCount');
+        let selectedMap = new Map();
+
+        function updateShelf() {
+            shelfDiv.innerHTML = "";
+            selectedMap.forEach((row, id) => {
+                const shelfIcon = document.createElement('div');
+                shelfIcon.className = 'shelf-icon';
+                shelfIcon.title = `${row.category} | ${row.tag_1} | ${row.tag_2}`;
+                shelfIcon.innerHTML = `
+                    <img src="/yoto_icons/${id}.png" alt="icon">
+                    <button class="remove-btn" title="Remove">&times;</button>
+                `;
+                shelfIcon.querySelector('.remove-btn').onclick = (e) => {
+                    e.stopPropagation();
+                    selectedMap.delete(id);
+                    updateShelf();
+                    updateGridSelections();
+                    updateShelfButtons();
+                };
+                shelfIcon.querySelector('img').onclick = () => {
+                    // Optionally show tooltip or preview
+                };
+                shelfDiv.appendChild(shelfIcon);
+            });
+            updateShelfButtons();
+        }
+
+        function updateShelfButtons() {
+            const hasSelection = selectedMap.size > 0;
+            downloadBtn.disabled = !hasSelection;
+            clearBtn.disabled = !hasSelection;
+            shelfBar.style.display = hasSelection ? "flex" : "none";
+            fixedButtons.style.display = hasSelection ? "flex" : "none";
+            downloadCount.textContent = selectedMap.size;
+        }
+
+        function updateGridSelections() {
+            document.querySelectorAll('.icon-card').forEach(card => {
+                const id = card.getAttribute('data-id');
+                if (selectedMap.has(id)) {
+                    card.classList.add('selected');
+                } else {
+                    card.classList.remove('selected');
+                }
+            });
+        }
+
+        function createIconCard(row) {
+            const card = document.createElement('div');
+            card.className = 'icon-card';
+            card.setAttribute('data-id', row.id);
+            card.innerHTML = `
+                <img src="/yoto_icons/${row.id}.png" alt="icon">
+                <div class="tooltip">
+                    <strong>Category:</strong> ${row.category}<br>
+                    <strong>Tag 1:</strong> ${row.tag_1}<br>
+                    <strong>Tag 2:</strong> ${row.tag_2}<br>
+                    <strong>ID:</strong> ${row.id}
+                </div>
+            `;
+            if (selectedMap.has(row.id)) {
+                card.classList.add('selected');
+            }
+            card.addEventListener('click', function(e) {
+                // Prevent click if tooltip or image in shelf is clicked
+                if (e.target.tagName === 'BUTTON') return;
+                if (selectedMap.has(row.id)) {
+                    selectedMap.delete(row.id);
+                } else {
+                    selectedMap.set(row.id, row);
+                }
+                updateShelf();
+                updateGridSelections();
+            });
+            return card;
+        }
+
+        async function loadIcons() {
+            if (loading) return;
+            if (total !== null && offset >= total) return;
+            loading = true;
+            loadingDiv.style.display = 'block';
+            try {
+                const resp = await fetch(`/api/search?query=${encodeURIComponent(query)}&offset=${offset}&limit=${limit}`);
+                const data = await resp.json();
+                total = data.total;
+                if (offset === 0) {
+                    grid.innerHTML = "";
+                }
+                data.results.forEach(row => {
+                    grid.appendChild(createIconCard(row));
+                });
+                resultsCount.textContent = `Results (${total})`;
+                offset += data.results.length;
+                updateGridSelections();
+            } finally {
+                loading = false;
+                loadingDiv.style.display = 'none';
+            }
+        }
+
+        // Infinite scroll
+        window.addEventListener('scroll', () => {
+            if ((window.innerHeight + window.scrollY) >= (document.body.offsetHeight - 200)) {
+                loadIcons();
+            }
+        });
+
+        // Search form
+        form.addEventListener('submit', e => {
+            e.preventDefault();
+            query = searchInput.value.trim();
+            offset = 0;
+            total = null;
+            loadIcons();
+        });
+
+        // Download selected
+        downloadBtn.addEventListener('click', async function() {
+            if (selectedMap.size === 0) return;
+            downloadBtn.disabled = true;
+            downloadBtn.textContent = `Preparing...`;
+            try {
+                const resp = await fetch('/download', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ids: Array.from(selectedMap.keys())})
+                });
+                if (resp.ok) {
+                    const blob = await resp.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'yoto_icons.zip';
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    window.URL.revokeObjectURL(url);
+                } else {
+                    alert('Download failed');
+                }
+            } finally {
+                downloadBtn.textContent = `Download Selected (${selectedMap.size})`;
+                updateShelfButtons();
+            }
+        });
+
+        // Clear shelf
+        clearBtn.addEventListener('click', function() {
+            selectedMap.clear();
+            updateShelf();
+            updateGridSelections();
+        });
+
+        // Initial load
+        loadIcons();
+        updateShelf();
+    </script>
+</body>
+</html>
