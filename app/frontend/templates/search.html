@@ -91,23 +91,67 @@
         }
 
         function createIconCard(row) {
+            const wrapper = document.createElement('div');
+            wrapper.style.position = 'relative';
+            wrapper.style.display = 'inline-block';
+
             const card = document.createElement('div');
             card.className = 'icon-card';
             card.setAttribute('data-id', row.id);
+
+            // Render category as badge
+            const categoryBadge = `<span class="badge search-trigger">${row.category}</span>`;
+            const tag1Tags = row.tag_1
+                ? row.tag_1.split(',').map(tag => `<span class="tag search-trigger">${tag.trim()}</span>`).join(' ')
+                : '';
+            const tag2Tags = row.tag_2
+                ? row.tag_2.split(',').map(tag => `<span class="tag search-trigger">${tag.trim()}</span>`).join(' ')
+                : '';
+
             card.innerHTML = `
                 <img src="/yoto_icons/${row.id}.png" alt="icon">
-                <div class="tooltip">
-                    <strong>Category:</strong> ${row.category}<br>
-                    <strong>Tag 1:</strong> ${row.tag_1}<br>
-                    <strong>Tag 2:</strong> ${row.tag_2}<br>
-                    <strong>ID:</strong> ${row.id}
-                </div>
             `;
             if (selectedMap.has(row.id)) {
                 card.classList.add('selected');
             }
-            card.addEventListener('click', function(e) {
-                // Prevent click if tooltip or image in shelf is clicked
+
+            // Tooltip as sibling
+            const tooltip = document.createElement('div');
+            tooltip.className = 'tooltip';
+            tooltip.innerHTML = `
+                ${categoryBadge}<br>
+                ${tag1Tags} ${tag2Tags}
+            `;
+
+            // Show/hide logic
+            let tooltipTimeout;
+            function showTooltip() {
+                clearTimeout(tooltipTimeout);
+                tooltip.style.visibility = 'visible';
+                tooltip.style.opacity = '1';
+            }
+            function hideTooltip() {
+                tooltipTimeout = setTimeout(() => {
+                    tooltip.style.visibility = 'hidden';
+                    tooltip.style.opacity = '0';
+                }, 100); // short delay to allow moving between icon and tooltip
+            }
+            card.addEventListener('mouseenter', showTooltip);
+            card.addEventListener('mouseleave', hideTooltip);
+            tooltip.addEventListener('mouseenter', showTooltip);
+            tooltip.addEventListener('mouseleave', hideTooltip);
+
+            // Shared click handler for card and tooltip
+            function handleClick(e) {
+                if (e.target.classList.contains('search-trigger')) {
+                    searchInput.value = e.target.textContent;
+                    query = e.target.textContent;
+                    offset = 0;
+                    total = null;
+                    loadIcons();
+                    e.stopPropagation();
+                    return;
+                }
                 if (e.target.tagName === 'BUTTON') return;
                 if (selectedMap.has(row.id)) {
                     selectedMap.delete(row.id);
@@ -116,8 +160,13 @@
                 }
                 updateShelf();
                 updateGridSelections();
-            });
-            return card;
+            }
+            card.addEventListener('click', handleClick);
+            tooltip.addEventListener('click', handleClick);
+
+            wrapper.appendChild(card);
+            wrapper.appendChild(tooltip);
+            return wrapper;
         }
 
         async function loadIcons() {
@@ -141,6 +190,15 @@
             } finally {
                 loading = false;
                 loadingDiv.style.display = 'none';
+                // Keep loading if content doesn't fill viewport
+                loadUntilFilled();
+            }
+        }
+
+        function loadUntilFilled() {
+            // If not enough icons to fill the viewport, load more
+            if (document.body.offsetHeight < window.innerHeight && (total === null || offset < total)) {
+                loadIcons();
             }
         }
 

@@ -1,20 +1,38 @@
+:root {
+    --background: #f7f9fb;
+    --main-accent: rgb(248, 94, 65);
+    --accent-shadow: rgba(248, 94, 65, 0.13);
+    --accent-hover: rgb(220, 80, 55);
+    --shelf-bg: #f1f5f9;
+    --container-bg: #fff;
+    --input-border: #cbd5e1;
+    --selected-bg: #e53e3e;
+    --button-green: #38a169;
+    --button-green-shadow: rgba(56,161,105,0.13);
+    --button-disabled: #a0aec0;
+    --heading: #2d3748;
+    --results-count: #4a5568;
+    --tooltip-bg: #222;
+    --text-colour: #2d3748;
+}
+
 body {
     font-family: 'Segoe UI', Arial, sans-serif;
-    background: #f7f9fb;
+    background: var(--background);
     margin: 0;
     padding: 0;
 }
 .container {
     max-width: 900px;
     margin: 0px auto;
-    background: #fff;
+    background: var(--container-bg);
     border-radius: 16px;
     box-shadow: 0 4px 24px rgba(0,0,0,0.07);
     padding: 32px 24px 24px 24px;
 }
 h1 {
     text-align: center;
-    color: #2d3748;
+    color: var(--text-colour);
     margin-bottom: 24px;
 }
 form {
@@ -25,7 +43,7 @@ form {
 input[type="text"] {
     width: 320px;
     padding: 12px 16px;
-    border: 1px solid #cbd5e1;
+    border: 1px solid var(--input-border);
     border-radius: 8px 0 0 8px;
     font-size: 1rem;
     outline: none;
@@ -48,18 +66,17 @@ button:hover {
     background: rgb(28, 169, 66);
 }
 .shelf-bar {
-    width: 100vw;
-    max-width: 100vw;
-    margin-left: 50%;
-    transform: translateX(-50%);
+    width: 900px; /* Match .container max-width */
+    max-width: 100%;
+    margin: 0 auto 8px auto;
     background: #f1f5f9;
     border: none;
-    box-shadow: none;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08); /* subtle recessed shadow */
     padding: 0;
-    margin-bottom: 18px;
     display: flex;
     justify-content: center;
     align-items: center;
+    border-radius: 12px;
 }
 .shelf {
     width: 100%;
@@ -71,12 +88,16 @@ button:hover {
     gap: 10px;
     display: flex;
     align-items: center;
-    padding: 12px 0;
+    padding: 12px 24px; /* Add left/right padding */
     min-height: 60px;
-    overflow-x: visible;
+    flex-wrap: wrap;        /* Allow icons to wrap to new rows */
+    overflow-x: visible;    /* Remove horizontal scroll */
+    overflow-y: visible;
+    white-space: normal;    /* Allow wrapping */
+    scrollbar-width: auto;  /* Default scrollbar */
 }
 .shelf::-webkit-scrollbar {
-    display: none;
+    display: none; /* Hide scrollbar in Webkit browsers */
 }
 .shelf-icon {
     position: relative;
@@ -91,7 +112,7 @@ button:hover {
     background: #fff;
     cursor: pointer;
     transition: box-shadow 0.2s, border 0.2s;
-    box-shadow: 0 1px 4px rgba(248,94,65,0.13);
+    box-shadow: 0 4px 4px rgba(248,94,65,0.13);
 }
 .shelf-icon .remove-btn {
     position: absolute;
@@ -145,10 +166,10 @@ button:hover {
 }
 .icon-card {
     border-radius: 12px;
-    border: 2px solid #cbd5e1;
+    border: 4px solid #cbd5e1;
     background: #fff;
     box-shadow: none;
-    padding: 8px 8px 8px 8px;
+    /* padding: 2px 2px 2px 2%; */
     position: relative;
     transition: box-shadow 0.2s, border 0.2s;
     width: 64px;
@@ -178,12 +199,12 @@ button:hover {
     box-shadow: none;
 }
 .tooltip {
+    /* Remove display:flex and centering, keep position absolute */
     visibility: hidden;
     opacity: 0;
     width: 200px;
-    background: #222;
+    background: var(--shelf-bg);
     color: #fff;
-    text-align: left;
     border-radius: 8px;
     padding: 12px;
     position: absolute;
@@ -193,8 +214,9 @@ button:hover {
     transform: translateX(-50%);
     transition: opacity 0.2s;
     font-size: 0.95rem;
-    pointer-events: none;
+    pointer-events: auto; /* Allow mouse events */
     box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+    text-align: center; /* Center content in tooltip */
 }
 .icon-card:hover .tooltip {
     visibility: visible;
@@ -208,7 +230,7 @@ button:hover {
     margin-left: -8px;
     border-width: 8px;
     border-style: solid;
-    border-color: #222 transparent transparent transparent;
+    border-color: var(--shelf-bg) transparent transparent transparent;
 }
 #loading {
     text-align: center;
@@ -225,4 +247,47 @@ button:hover {
     .tooltip { width: 140px; font-size: 0.85rem; }
     .shelf-icon img { width: 36px; height: 36px; }
     .fixed-buttons { right: 8px; bottom: 8px; }
+}
+@media (max-width: 600px) {
+    .shelf-bar { width: 100%; }
+}
+
+.badge {
+    display: inline-block;
+    background: var(--main-accent);
+    color: #fff;
+    border-radius: 999px;
+    padding: 2px 12px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    margin-bottom: 4px;
+    margin-left: auto;
+    margin-right: auto;
+    cursor: pointer; /* Make it look clickable */
+    transition: background 0.18s, box-shadow 0.18s;
+    box-shadow: 0 1px 4px rgba(248,94,65,0.10);
+}
+.badge:hover {
+    background: var(--accent-hover);
+    box-shadow: 0 2px 8px rgba(248,94,65,0.18);
+}
+
+.tag {
+    display: inline-block;
+    background: var(--accent-shadow);
+    color: var(--main-accent);
+    border-radius: 6px;
+    padding: 2px 8px;
+    font-size: 0.8rem;
+    margin: 2px 4px 2px 0;
+    font-weight: 400;
+    cursor: pointer; /* Make it look clickable */
+    transition: background 0.18s, color 0.18s, box-shadow 0.18s;
+    box-shadow: 0 1px 4px rgba(248,94,65,0.07);
+    vertical-align: middle;
+}
+.tag:hover {
+    background: var(--main-accent);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(248,94,65,0.18);
 }

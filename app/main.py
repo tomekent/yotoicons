@@ -9,6 +9,8 @@ import io
 import zipfile
 import os
 from sqlalchemy import or_
+import random
+from sqlalchemy.sql.expression import func
 
 ICONS_DIR = "data/icons"
 STATIC_DIR = "app/frontend/static"
@@ -22,19 +24,29 @@ templates = Jinja2Templates(directory=TEMPLATES_DIR)
 
 
 @app.get("/", response_class=HTMLResponse)
-def search_form(request: Request):
-    return templates.TemplateResponse("search.html", {"request": request, "query": ""})
+def search_form(request: Request, db=Depends(get_db)):
+    # Show random icons if no search
+    random_icons = db.query(YotoIcon).order_by(func.random()).limit(12).all()
+    results = [row.__dict__ for row in random_icons]
+    for r in results:
+        r.pop('_sa_instance_state', None)
+    return templates.TemplateResponse("search.html", {"request": request, "results": results, "query": ""})
 
 @app.post("/", response_class=HTMLResponse)
-def search(request: Request, query: str = Form(""), db=next(get_db())):
-    q = db.query(YotoIcon).filter(
-        or_(
-            YotoIcon.category.ilike(f"%{query}%"),
-            YotoIcon.tag_1.ilike(f"%{query}%"),
-            YotoIcon.tag_2.ilike(f"%{query}%")
+def search(request: Request, query: str = Form(""), db=Depends(get_db)):
+    if not query.strip():
+        # Show random icons if no search
+        random_icons = db.query(YotoIcon).order_by(func.random()).limit(12).all()
+        results = [row.__dict__ for row in random_icons]
+    else:
+        q = db.query(YotoIcon).filter(
+            or_(
+                YotoIcon.category.ilike(f"%{query}%"),
+                YotoIcon.tag_1.ilike(f"%{query}%"),
+                YotoIcon.tag_2.ilike(f"%{query}%")
+            )
         )
-    )
-    results = [row.__dict__ for row in q.all()]
+        results = [row.__dict__ for row in q.all()]
     for r in results:
         r.pop('_sa_instance_state', None)
     return templates.TemplateResponse("search.html", {"request": request, "results": results, "query": query})
@@ -46,16 +58,19 @@ def api_search(
     limit: int = Query(25, ge=1, le=100),
     db=Depends(get_db)
 ):
-    q = db.query(YotoIcon)
-    if query:
-        q = q.filter(
+    if not query.strip():
+        # Show random icons if no search
+        q = db.query(YotoIcon).order_by(func.random())
+        total = db.query(YotoIcon).count()
+    else:
+        q = db.query(YotoIcon).filter(
             or_(
                 YotoIcon.category.ilike(f"%{query}%"),
                 YotoIcon.tag_1.ilike(f"%{query}%"),
                 YotoIcon.tag_2.ilike(f"%{query}%")
             )
         )
-    total = q.count()
+        total = q.count()
     results = [row.__dict__ for row in q.offset(offset).limit(limit).all()]
     for r in results:
         r.pop('_sa_instance_state', None)
