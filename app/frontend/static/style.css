@@ -6,7 +6,7 @@ body {
 }
 .container {
     max-width: 900px;
-    margin: 40px auto;
+    margin: 0px auto;
     background: #fff;
     border-radius: 16px;
     box-shadow: 0 4px 24px rgba(0,0,0,0.07);
@@ -32,12 +32,12 @@ input[type="text"] {
     transition: border 0.2s;
 }
 input[type="text"]:focus {
-    border-color: #3182ce;
+    border-color: rgb(248, 94, 65);
 }
 button {
     padding: 12px 24px;
     border: none;
-    background: #3182ce;
+    background: rgb(248, 94, 65);
     color: #fff;
     font-size: 1rem;
     border-radius: 0 8px 8px 0;
@@ -45,7 +45,7 @@ button {
     transition: background 0.2s;
 }
 button:hover {
-    background: #2563eb;
+    background: rgb(28, 169, 66);
 }
 .shelf-bar {
     width: 100vw;
@@ -87,11 +87,11 @@ button:hover {
     width: 48px;
     height: 48px;
     border-radius: 8px;
-    border: 2px solid #3182ce;
+    border: 2px solid rgb(248, 94, 65);
     background: #fff;
     cursor: pointer;
     transition: box-shadow 0.2s, border 0.2s;
-    box-shadow: 0 1px 4px rgba(49,130,206,0.13);
+    box-shadow: 0 1px 4px rgba(248,94,65,0.13);
 }
 .shelf-icon .remove-btn {
     position: absolute;
@@ -139,16 +139,16 @@ button:hover {
 }
 .grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 28px;
+    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+    gap: 14px;
     justify-items: center;
 }
 .icon-card {
     border-radius: 12px;
-    border: 2px solid #3182ce;
+    border: 2px solid #cbd5e1;
     background: #fff;
     box-shadow: none;
-    padding: 18px 10px 10px 10px;
+    padding: 8px 8px 8px 8px;
     position: relative;
     transition: box-shadow 0.2s, border 0.2s;
     width: 64px;
@@ -161,12 +161,12 @@ button:hover {
     border: 2px solid #cbd5e1;
 }
 .icon-card.selected {
-    border: 2px solid #3182ce;
-    box-shadow: 0 6px 24px rgba(49,130,206,0.13);
+    border: 2px solid rgb(248, 94, 65);
+    box-shadow: 0 6px 24px rgba(248,94,65,0.13);
 }
 .icon-card:hover {
-    box-shadow: 0 6px 24px rgba(49,130,206,0.13);
-    border: 2px solid #3182ce;
+    box-shadow: 0 6px 24px rgba(248,94,65,0.13);
+    border: 2px solid rgb(248, 94, 65);
 }
 .icon-card img {
     width: 64px;
@@ -212,7 +212,7 @@ button:hover {
 }
 #loading {
     text-align: center;
-    color: #3182ce;
+    color: rgb(248, 94, 65);
     margin: 20px 0;
     font-size: 1.1rem;
 }
@@ -220,8 +220,8 @@ button:hover {
     .container { padding: 12px 2px; }
     input[type="text"] { width: 100%; }
     .grid { gap: 14px; }
-    .icon-card { width: 100px; height: 120px; }
-    .icon-card img { width: 70px; height: 70px; }
+    .icon-card { width: 72px; height: 72px; }
+    .icon-card img { width: 64px; height: 64px; }
     .tooltip { width: 140px; font-size: 0.85rem; }
     .shelf-icon img { width: 36px; height: 36px; }
     .fixed-buttons { right: 8px; bottom: 8px; }
