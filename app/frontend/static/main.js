@@ -1,0 +1,231 @@
+let offset = 0;
+const limit = 25;
+let loading = false;
+let total = null;
+let query = "";
+const grid = document.getElementById('iconGrid');
+const loadingDiv = document.getElementById('loading');
+const resultsCount = document.getElementById('resultsCount');
+const searchInput = document.getElementById('query');
+const form = document.getElementById('searchForm');
+const downloadBtn = document.getElementById('downloadBtn');
+const clearBtn = document.getElementById('clearBtn');
+const shelfDiv = document.getElementById('shelf');
+const shelfBar = document.getElementById('shelfBar');
+const fixedButtons = document.getElementById('fixedButtons');
+const downloadCount = document.getElementById('downloadCount');
+let selectedMap = new Map();
+
+function updateShelf() {
+    shelfDiv.innerHTML = "";
+    selectedMap.forEach((row, id) => {
+        const shelfIcon = document.createElement('div');
+        shelfIcon.className = 'shelf-icon';
+        shelfIcon.title = `${row.category} | ${row.tag_1} | ${row.tag_2}`;
+        shelfIcon.innerHTML = `
+            <img src="/yoto_icons/${id}.png" alt="icon">
+            <button class="remove-btn" title="Remove">&times;</button>
+        `;
+        shelfIcon.querySelector('.remove-btn').onclick = (e) => {
+            e.stopPropagation();
+            selectedMap.delete(id);
+            updateShelf();
+            updateGridSelections();
+            updateShelfButtons();
+        };
+        shelfIcon.querySelector('img').onclick = () => {
+            // Optionally show tooltip or preview
+        };
+        shelfDiv.appendChild(shelfIcon);
+    });
+    updateShelfButtons();
+}
+
+function updateShelfButtons() {
+    const hasSelection = selectedMap.size > 0;
+    downloadBtn.disabled = !hasSelection;
+    clearBtn.disabled = !hasSelection;
+    shelfBar.style.display = hasSelection ? "flex" : "none";
+    fixedButtons.style.display = hasSelection ? "flex" : "none";
+    downloadCount.textContent = selectedMap.size;
+}
+
+function updateGridSelections() {
+    document.querySelectorAll('.icon-card').forEach(card => {
+        const id = card.getAttribute('data-id');
+        if (selectedMap.has(id)) {
+            card.classList.add('selected');
+        } else {
+            card.classList.remove('selected');
+        }
+    });
+}
+
+function createIconCard(row) {
+    const wrapper = document.createElement('div');
+    wrapper.style.position = 'relative';
+    wrapper.style.display = 'inline-block';
+
+    const card = document.createElement('div');
+    card.className = 'icon-card';
+    card.setAttribute('data-id', row.id);
+
+    // Render category as badge
+    const categoryBadge = `<span class="badge search-trigger">${row.category}</span>`;
+    const tag1Tags = row.tag_1
+        ? row.tag_1.split(',').map(tag => `<span class="tag search-trigger">${tag.trim()}</span>`).join(' ')
+        : '';
+    const tag2Tags = row.tag_2
+        ? row.tag_2.split(',').map(tag => `<span class="tag search-trigger">${tag.trim()}</span>`).join(' ')
+        : '';
+
+    card.innerHTML = `
+        <img src="/yoto_icons/${row.id}.png" alt="icon">
+    `;
+    if (selectedMap.has(row.id)) {
+        card.classList.add('selected');
+    }
+
+    // Tooltip as sibling
+    const tooltip = document.createElement('div');
+    tooltip.className = 'tooltip';
+    tooltip.innerHTML = `
+        ${categoryBadge}<br>
+        ${tag1Tags} ${tag2Tags}
+    `;
+
+    // Show/hide logic
+    let tooltipTimeout;
+    function showTooltip() {
+        clearTimeout(tooltipTimeout);
+        tooltip.style.visibility = 'visible';
+        tooltip.style.opacity = '1';
+    }
+    function hideTooltip() {
+        tooltipTimeout = setTimeout(() => {
+            tooltip.style.visibility = 'hidden';
+            tooltip.style.opacity = '0';
+        }, 100); // short delay to allow moving between icon and tooltip
+    }
+    card.addEventListener('mouseenter', showTooltip);
+    card.addEventListener('mouseleave', hideTooltip);
+    tooltip.addEventListener('mouseenter', showTooltip);
+    tooltip.addEventListener('mouseleave', hideTooltip);
+
+    // Shared click handler for card and tooltip
+    function handleClick(e) {
+        if (e.target.classList.contains('search-trigger')) {
+            searchInput.value = e.target.textContent;
+            query = e.target.textContent;
+            offset = 0;
+            total = null;
+            loadIcons();
+            e.stopPropagation();
+            return;
+        }
+        if (e.target.tagName === 'BUTTON') return;
+        if (selectedMap.has(row.id)) {
+            selectedMap.delete(row.id);
+        } else {
+            selectedMap.set(row.id, row);
+        }
+        updateShelf();
+        updateGridSelections();
+    }
+    card.addEventListener('click', handleClick);
+    tooltip.addEventListener('click', handleClick);
+
+    wrapper.appendChild(card);
+    wrapper.appendChild(tooltip);
+    return wrapper;
+}
+
+async function loadIcons() {
+    if (loading) return;
+    if (total !== null && offset >= total) return;
+    loading = true;
+    loadingDiv.style.display = 'block';
+    try {
+        const resp = await fetch(`/api/search?query=${encodeURIComponent(query)}&offset=${offset}&limit=${limit}`);
+        const data = await resp.json();
+        total = data.total;
+        if (offset === 0) {
+            grid.innerHTML = "";
+        }
+        data.results.forEach(row => {
+            grid.appendChild(createIconCard(row));
+        });
+        resultsCount.textContent = `Results (${total})`;
+        offset += data.results.length;
+        updateGridSelections();
+    } finally {
+        loading = false;
+        loadingDiv.style.display = 'none';
+        // Keep loading if content doesn't fill viewport
+        loadUntilFilled();
+    }
+}
+
+function loadUntilFilled() {
+    // If not enough icons to fill the viewport, load more
+    if (document.body.offsetHeight < window.innerHeight && (total === null || offset < total)) {
+        loadIcons();
+    }
+}
+
+// Infinite scroll
+window.addEventListener('scroll', () => {
+    if ((window.innerHeight + window.scrollY) >= (document.body.offsetHeight - 200)) {
+        loadIcons();
+    }
+});
+
+// Search form
+form.addEventListener('submit', e => {
+    e.preventDefault();
+    query = searchInput.value.trim();
+    offset = 0;
+    total = null;
+    loadIcons();
+});
+
+// Download selected
+downloadBtn.addEventListener('click', async function() {
+    if (selectedMap.size === 0) return;
+    downloadBtn.disabled = true;
+    downloadBtn.textContent = `Preparing...`;
+    try {
+        const resp = await fetch('/download', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ids: Array.from(selectedMap.keys())})
+        });
+        if (resp.ok) {
+            const blob = await resp.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'yoto_icons.zip';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+        } else {
+            alert('Download failed');
+        }
+    } finally {
+        downloadBtn.textContent = `Download Selected (${selectedMap.size})`;
+        updateShelfButtons();
+    }
+});
+
+// Clear shelf
+clearBtn.addEventListener('click', function() {
+    selectedMap.clear();
+    updateShelf();
+    updateGridSelections();
+});
+
+// Initial load
+loadIcons();
+updateShelf();
