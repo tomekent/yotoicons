@@ -15,7 +15,6 @@ class YotoIcon(Base):
     category = Column(String, index=True)
     tag_1 = Column(String, index=True)
     tag_2 = Column(String, index=True)
-    # Add other columns as needed
 
 Base.metadata.create_all(bind=engine)
 

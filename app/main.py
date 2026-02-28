@@ -8,7 +8,8 @@ from app.backend.db import YotoIcon, get_db
 import io
 import zipfile
 import os
-from sqlalchemy import or_
+import re
+from sqlalchemy import or_, and_
 import random
 from sqlalchemy.sql.expression import func
 
@@ -39,13 +40,17 @@ def search(request: Request, query: str = Form(""), db=Depends(get_db)):
         random_icons = db.query(YotoIcon).order_by(func.random()).limit(12).all()
         results = [row.__dict__ for row in random_icons]
     else:
-        q = db.query(YotoIcon).filter(
-            or_(
-                YotoIcon.category.ilike(f"%{query}%"),
-                YotoIcon.tag_1.ilike(f"%{query}%"),
-                YotoIcon.tag_2.ilike(f"%{query}%")
+        terms = [t.strip() for t in re.split(r'[;,]', query) if t.strip()]
+        filters = []
+        for term in terms:
+            filters.append(
+                or_(
+                    YotoIcon.category.ilike(f"%{term}%"),
+                    YotoIcon.tag_1.ilike(f"%{term}%"),
+                    YotoIcon.tag_2.ilike(f"%{term}%")
+                )
             )
-        )
+        q = db.query(YotoIcon).filter(or_(*filters))
         results = [row.__dict__ for row in q.all()]
     for r in results:
         r.pop('_sa_instance_state', None)
@@ -63,13 +68,17 @@ def api_search(
         q = db.query(YotoIcon).order_by(func.random())
         total = db.query(YotoIcon).count()
     else:
-        q = db.query(YotoIcon).filter(
-            or_(
-                YotoIcon.category.ilike(f"%{query}%"),
-                YotoIcon.tag_1.ilike(f"%{query}%"),
-                YotoIcon.tag_2.ilike(f"%{query}%")
+        terms = [t.strip() for t in re.split(r'[;,]', query) if t.strip()]
+        filters = []
+        for term in terms:
+            filters.append(
+                or_(
+                    YotoIcon.category.ilike(f"%{term}%"),
+                    YotoIcon.tag_1.ilike(f"%{term}%"),
+                    YotoIcon.tag_2.ilike(f"%{term}%")
+                )
             )
-        )
+        q = db.query(YotoIcon).filter(or_(*filters))
         total = q.count()
     results = [row.__dict__ for row in q.offset(offset).limit(limit).all()]
     for r in results:
