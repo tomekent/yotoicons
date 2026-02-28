@@ -87,17 +87,27 @@ def api_search(
 
 @app.post("/download")
 async def download_icons(data: dict = Body(...)):
-    ids = data.get("ids", [])
+    tracks = data.get("tracks", [])
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, "w") as zipf:
-        for icon_id in ids:
+        for track in tracks:
+            icon_id = track.get("id")
+            name = track.get("name", "").strip()
+            if not icon_id or not name:
+                continue
             filename = f"{icon_id}.png"
+            safe_name = re.sub(r'[^a-zA-Z0-9_\- ]', '_', name)  # sanitize filename
+            outname = f"{safe_name}.png"
             filepath = os.path.join(ICONS_DIR, filename)
             if os.path.isfile(filepath):
-                zipf.write(filepath, arcname=filename)
+                zipf.write(filepath, arcname=outname)
     zip_buffer.seek(0)
     return StreamingResponse(
         zip_buffer,
         media_type="application/zip",
-        headers={"Content-Disposition": "attachment; filename=icons.zip"}
+        headers={"Content-Disposition": "attachment; filename=track_icons.zip"}
     )
+
+@app.get("/tracklist", response_class=HTMLResponse)
+def tracklist(request: Request):
+    return templates.TemplateResponse("tracklist.html", {"request": request})
