@@ -1,0 +1,62 @@
+.removeTrackBtn {
+    position: relative;
+    background: none;
+    border: none;
+    border-radius: 0;
+    width: 32px;
+    height: 32px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    line-height: 1;
+    transition: transform 0.18s;
+    /* No border by default */
+}
+.removeTrackBtn::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border: 2px solid #cbd5e1;
+    border-radius: 8px;
+    opacity: 0;
+    transform: scale(0.7);
+    transition: opacity 0.18s, transform 0.18s;
+    pointer-events: none;
+}
+.removeTrackBtn:hover {
+    transform: scale(1.15);
+}
+.removeTrackBtn:hover::after {
+    opacity: 1;
+    transform: scale(1);
+}
+.removeTrackBtn:hover svg line {
+    stroke: #4a5568;
+}
+#addTrackBtn {
+    margin: 12px 0;
+}
+#iconSearchModal input[type="text"] {
+    width: 80%;
+    padding: 10px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--input-border);
+    border-color: var(--main-accent);
+    font-size: 1rem;
+    margin-bottom: 12px;
+    outline: none;
+}
+#iconSearchModal input[type="text"]:focus {
+    border-color: var(--main-accent);
+}
+#modalIconGrid {
+    height: 340px; /* Fixed height */
+    overflow-y: auto;
+    margin-bottom: 8px;
+    background: #fff;
+    display: flex;
+    flex-wrap: wrap;
+    align-content: flex-start;
+}

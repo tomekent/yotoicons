@@ -9,11 +9,14 @@ const resultsCount = document.getElementById('resultsCount');
 const searchInput = document.getElementById('query');
 const form = document.getElementById('searchForm');
 const downloadBtn = document.getElementById('downloadBtn');
+const downloadCount = document.getElementById('downloadCount');
+const convertBtn = document.getElementById('convertBtn');
+const convertCount = document.getElementById('convertCount');
 const clearBtn = document.getElementById('clearBtn');
 const shelfDiv = document.getElementById('shelf');
 const shelfBar = document.getElementById('shelfBar');
 const fixedButtons = document.getElementById('fixedButtons');
-const downloadCount = document.getElementById('downloadCount');
+
 let selectedMap = new Map();
 
 function updateShelf() {
@@ -45,9 +48,11 @@ function updateShelfButtons() {
     const hasSelection = selectedMap.size > 0;
     downloadBtn.disabled = !hasSelection;
     clearBtn.disabled = !hasSelection;
+    convertBtn.disabled = !hasSelection;
     shelfBar.style.display = hasSelection ? "flex" : "none";
     fixedButtons.style.display = hasSelection ? "flex" : "none";
     downloadCount.textContent = selectedMap.size;
+    convertCount.textContent = selectedMap.size;
 }
 
 function updateGridSelections() {
@@ -225,6 +230,16 @@ clearBtn.addEventListener('click', function() {
     updateShelf();
     updateGridSelections();
 });
+
+convertBtn.onclick = function() {
+    // Prepare track data: [{name: tag_1, iconId: icon.id}]
+    const tracks = Array.from(selectedMap.values()).map(icon => ({
+        name: icon.tag_1 ? icon.tag_1.split(',')[0].trim() : '',
+        iconId: icon.id
+    }));
+    localStorage.setItem('preTracks', JSON.stringify(tracks));
+    window.location.href = '/tracklist';
+};
 
 // Initial load
 loadIcons();

@@ -24,7 +24,7 @@ templates = Jinja2Templates(directory=TEMPLATES_DIR)
 
 
 
-@app.get("/", response_class=HTMLResponse)
+@app.get("/search", response_class=HTMLResponse)
 def search_form(request: Request, db=Depends(get_db)):
     # Show random icons if no search
     random_icons = db.query(YotoIcon).order_by(func.random()).limit(12).all()

@@ -3,7 +3,8 @@
 <head>
     <title>Yoto Tracklist Icon Assigner</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="/static/main.css">
+    <link rel="stylesheet" href="/static/tracklist.css">
     <style>
         body {
             display: flex;
@@ -20,50 +21,7 @@
             padding: 32px 24px 24px 24px;
             max-width: 600px;
         }
-        .removeTrackBtn {
-            background: #e53e3e;
-            color: #fff;
-            border: none;
-            border-radius: 50%;
-            width: 32px;
-            height: 32px;
-            font-size: 1.3rem;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: background 0.2s;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
-            padding: 0;
-            line-height: 1;
-        }
-        .removeTrackBtn:hover {
-            background: #c53030;
-        }
-        #addTrackBtn {
-            margin: 12px 0;
-        }
-        #iconSearchModal input[type="text"] {
-            width: 80%;
-            padding: 10px 14px;
-            border-radius: 8px;
-            border: 1px solid var(--input-border);
-            font-size: 1rem;
-            margin-bottom: 12px;
-            outline: none;
-        }
-        #iconSearchModal input[type="text"]:focus {
-            border-color: var(--main-accent);
-        }
-        #modalIconGrid {
-            height: 340px; /* Fixed height */
-            overflow-y: auto;
-            margin-bottom: 8px;
-            background: #fff;
-            display: flex;
-            flex-wrap: wrap;
-            align-content: flex-start;
-        }
+        
     </style>
 </head>
 <body>
@@ -71,212 +29,23 @@
         <h1 style="text-align:center;">Icon Playlist</h1>
         <div id="trackList"></div>
         <button type="button" id="addTrackBtn" class="download-btn">Add Track</button>
-        <button id="downloadTracksBtn" class="download-btn" style="margin-top:24px;">Download Assigned Icons</button>
+        <button id="downloadTracksBtn" class="download-btn" style="margin-top:24px;">Download Icons</button>
     </div>
     <div id="iconSearchModal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.18);z-index:200;align-items:center;justify-content:center;">
         <div style="background:#fff;padding:24px;border-radius:16px;max-width:500px;width:90vw;box-shadow:0 4px 24px rgba(0,0,0,0.13);position:relative;">
-            <button id="closeModalBtn" style="position:absolute;top:8px;right:8px;" class="removeTrackBtn">&times;</button>
-            <h2 id="modalTitle" style="margin-top:0;">Search Icon for Track</h2>
+            <button id="closeModalBtn" style="position:absolute;top:8px;right:8px;" class="removeTrackBtn" aria-label="Close">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <line x1="6" y1="6" x2="18" y2="18" stroke="#718096" stroke-width="2" stroke-linecap="round"/>
+                    <line x1="18" y1="6" x2="6" y2="18" stroke="#718096" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+            </button>
+            <h2 id="modalTitle" style="margin-top:0;">Search Track Icon</h2>
             <input type="text" id="modalSearchInput" placeholder="Search icons..." autocomplete="off">
             <div id="modalResultsCount" style="color:#4a5568;font-size:1rem;margin-bottom:8px;"></div>
             <div class="grid" id="modalIconGrid"></div>
             <div id="modalLoading" style="text-align:center;color:rgb(248,94,65);margin:12px 0;display:none;">Loading...</div>
         </div>
     </div>
-    <script>
-    // Track data structure: {id: number, name: string, iconId: string|null}
-    let tracks = [{id: Date.now(), name: '', iconId: null}];
-    const trackListDiv = document.getElementById('trackList');
-    const addTrackBtn = document.getElementById('addTrackBtn');
-    const downloadTracksBtn = document.getElementById('downloadTracksBtn');
-    const iconSearchModal = document.getElementById('iconSearchModal');
-    const closeModalBtn = document.getElementById('closeModalBtn');
-    const modalTitle = document.getElementById('modalTitle');
-    const modalResultsCount = document.getElementById('modalResultsCount');
-    const modalIconGrid = document.getElementById('modalIconGrid');
-    const modalLoading = document.getElementById('modalLoading');
-    const modalSearchInput = document.getElementById('modalSearchInput');
-    let currentTrackIdx = null;
-    let lastSearchTerm = '';
-
-    let modalOffset = 0;
-    let modalTotal = null;
-    let modalQuery = '';
-    let modalLoadingIcons = false;
-
-    function renderTrackList() {
-        trackListDiv.innerHTML = '';
-        tracks.forEach((track) => {
-            const wrapper = document.createElement('div');
-            wrapper.style.display = 'flex';
-            wrapper.style.alignItems = 'center';
-            wrapper.style.marginBottom = '16px';
-            wrapper.style.gap = '18px';
-
-            // Icon placeholder
-            const iconDiv = document.createElement('div');
-            iconDiv.style.width = '64px';
-            iconDiv.style.height = '64px';
-            iconDiv.style.border = '2px solid #cbd5e1';
-            iconDiv.style.borderRadius = '12px';
-            iconDiv.style.background = '#fff';
-            iconDiv.style.display = 'flex';
-            iconDiv.style.alignItems = 'center';
-            iconDiv.style.justifyContent = 'center';
-            iconDiv.style.cursor = 'pointer';
-            iconDiv.title = 'Click to assign icon';
-
-            if (track.iconId) {
-                iconDiv.innerHTML = `<img src="/yoto_icons/${track.iconId}.png" alt="icon" style="width:56px;height:56px;border-radius:8px;">`;
-            } else {
-                // Use a plus icon instead of camera
-                iconDiv.innerHTML = `<span style="color:#a0aec0;font-size:2.2rem;">&#43;</span>`;
-            }
-            iconDiv.onclick = () => openIconSearch(track.id);
-
-            // Track name input
-            const nameInput = document.createElement('input');
-            nameInput.type = 'text';
-            nameInput.value = track.name;
-            nameInput.placeholder = "Track name...";
-            nameInput.style.width = '220px';
-            nameInput.style.padding = '8px 12px';
-            nameInput.style.borderRadius = '8px';
-            nameInput.style.border = '1px solid var(--input-border)';
-            nameInput.oninput = (e) => {
-                track.name = e.target.value;
-            };
-
-            // Remove track button
-            const removeBtn = document.createElement('button');
-            removeBtn.className = 'removeTrackBtn';
-            removeBtn.innerHTML = '&times;';
-            removeBtn.setAttribute('data-id', track.id);
-            removeBtn.onclick = () => {
-                const idxToRemove = tracks.findIndex(t => t.id === track.id);
-                if (idxToRemove !== -1) {
-                    tracks.splice(idxToRemove, 1);
-                    renderTrackList();
-                }
-            };
-
-            wrapper.appendChild(iconDiv);
-            wrapper.appendChild(nameInput);
-            wrapper.appendChild(removeBtn);
-            trackListDiv.appendChild(wrapper);
-        });
-    }
-
-    addTrackBtn.onclick = () => {
-        tracks.push({id: Date.now() + Math.random(), name: '', iconId: null});
-        renderTrackList();
-    };
-
-    function openIconSearch(trackId) {
-        currentTrackIdx = tracks.findIndex(t => t.id === trackId);
-        iconSearchModal.style.display = 'flex';
-        modalTitle.textContent = `Search Icon for "${tracks[currentTrackIdx].name || 'Track'}"`;
-        modalSearchInput.value = tracks[currentTrackIdx].name;
-        lastSearchTerm = tracks[currentTrackIdx].name;
-        searchIcons(tracks[currentTrackIdx].name);
-        modalSearchInput.focus();
-    }
-
-    closeModalBtn.onclick = () => {
-        iconSearchModal.style.display = 'none';
-        modalIconGrid.innerHTML = '';
-        modalResultsCount.textContent = '';
-        modalSearchInput.value = '';
-    };
-
-    modalSearchInput.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            searchIcons(modalSearchInput.value);
-        }
-    });
-
-    modalSearchInput.addEventListener('input', function(e) {
-        if (modalSearchInput.value !== lastSearchTerm) {
-            lastSearchTerm = modalSearchInput.value;
-            searchIcons(modalSearchInput.value);
-        }
-    });
-
-    async function searchIcons(query, append = false) {
-        if (!append) {
-            modalOffset = 0;
-            modalTotal = null;
-            // Show placeholder instead of clearing
-            modalIconGrid.innerHTML = `<div style="width:100%;text-align:center;padding:40px 0;color:#a0aec0;">Loading...</div>`;
-        }
-        modalLoading.style.display = 'block';
-        modalLoadingIcons = true;
-        try {
-            const resp = await fetch(`/api/search?query=${encodeURIComponent(query)}&offset=${modalOffset}&limit=25`);
-            const data = await resp.json();
-            modalTotal = data.total;
-            modalResultsCount.textContent = `Results (${modalTotal})`;
-            if (!append) modalIconGrid.innerHTML = '';
-            data.results.forEach(row => {
-                const card = document.createElement('div');
-                card.className = 'icon-card';
-                card.style.cursor = 'pointer';
-                card.innerHTML = `<img src="/yoto_icons/${row.id}.png" alt="icon">`;
-                card.onclick = () => {
-                    tracks[currentTrackIdx].iconId = row.id;
-                    renderTrackList();
-                    iconSearchModal.style.display = 'none';
-                    modalIconGrid.innerHTML = '';
-                    modalResultsCount.textContent = '';
-                    modalSearchInput.value = '';
-                };
-                card.title = `${row.category} | ${row.tag_1} | ${row.tag_2}`;
-                card.onmouseenter = () => card.classList.add('selected');
-                card.onmouseleave = () => card.classList.remove('selected');
-                modalIconGrid.appendChild(card);
-            });
-            modalOffset += data.results.length;
-        } finally {
-            modalLoading.style.display = 'none';
-            modalLoadingIcons = false;
-        }
-    }
-
-    modalIconGrid.addEventListener('scroll', function() {
-        if (
-            modalIconGrid.scrollTop + modalIconGrid.clientHeight >= modalIconGrid.scrollHeight - 40 &&
-            !modalLoadingIcons &&
-            modalOffset < modalTotal
-        ) {
-            searchIcons(modalQuery, true);
-        }
-    });
-
-    downloadTracksBtn.onclick = async function() {
-        const assigned = tracks.filter(t => t.iconId && t.name.trim());
-        const payload = assigned.map(t => ({id: t.iconId, name: t.name.trim()}));
-        const resp = await fetch('/download', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({tracks: payload})
-        });
-        if (resp.ok) {
-            const blob = await resp.blob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'track_icons.zip';
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            window.URL.revokeObjectURL(url);
-        } else {
-            alert('Download failed');
-        }
-    };
-
-    renderTrackList();
-    </script>
+<script src="/static/track_list.js"></script>
 </body>
 </html>
