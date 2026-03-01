@@ -53,17 +53,40 @@ input[type="text"]:focus {
     border-color: rgb(248, 94, 65);
 }
 button {
+    position: relative;
     padding: 12px 24px;
     border: none;
     background: rgb(248, 94, 65);
     color: #fff;
     font-size: 1rem;
-    border-radius: 0 8px 8px 0;
+    border-radius: 8px;
     cursor: pointer;
-    transition: background 0.2s;
+    transition: background 0.2s, transform 0.18s;
+    overflow: hidden;
 }
-button:hover {
-    background: rgb(28, 169, 66);
+
+button::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border: 2px solid #cbd5e1;
+    border-radius: 8px;
+    opacity: 0;
+    transform: scale(1);
+    transition: opacity 0.18s, transform 0.18s;
+    pointer-events: none;
+}
+
+/* button:hover {
+    transform: scale(1.15);
+} */
+
+button:hover::after {
+    opacity: 1.01;
+    transform: scale(1);
+}
+.button:hover svg line {
+    stroke: #4a5568;
 }
 .shelf-bar {
     width: 900px; /* Match .container max-width */
