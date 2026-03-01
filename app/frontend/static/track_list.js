@@ -3,6 +3,7 @@ let tracks = [{id: Date.now(), name: '', iconId: null}];
 const trackListDiv = document.getElementById('trackList');
 const addTrackBtn = document.getElementById('addTrackBtn');
 const downloadTracksBtn = document.getElementById('downloadTracksBtn');
+const clearTracksBtn = document.getElementById('clearTracksBtn');
 const iconSearchModal = document.getElementById('iconSearchModal');
 const closeModalBtn = document.getElementById('closeModalBtn');
 const modalTitle = document.getElementById('modalTitle');
@@ -10,6 +11,18 @@ const modalResultsCount = document.getElementById('modalResultsCount');
 const modalIconGrid = document.getElementById('modalIconGrid');
 const modalLoading = document.getElementById('modalLoading');
 const modalSearchInput = document.getElementById('modalSearchInput');
+
+const pasteTracksBtn = document.getElementById('pasteTracksBtn');
+const pasteTracksModal = document.getElementById('pasteTracksModal');
+const closePasteModalBtn = document.getElementById('closePasteModalBtn');
+const pasteTracksInput = document.getElementById('pasteTracksInput');
+const submitPasteTracksBtn = document.getElementById('submitPasteTracksBtn');
+
+clearTracksBtn.onclick = () => {
+    tracks = [{id: Date.now(), name: '', iconId: null}];
+    renderTrackList();
+};
+
 let currentTrackIdx = null;
 let lastSearchTerm = '';
 
@@ -94,10 +107,24 @@ addTrackBtn.onclick = () => {
 function openIconSearch(trackId) {
     currentTrackIdx = tracks.findIndex(t => t.id === trackId);
     iconSearchModal.style.display = 'flex';
-    modalTitle.textContent = `Searching Icon for "${tracks[currentTrackIdx].name || 'Track'}"`;
-    modalSearchInput.value = tracks[currentTrackIdx].name;
-    lastSearchTerm = tracks[currentTrackIdx].name;
-    searchIcons(tracks[currentTrackIdx].name);
+
+    // Remove leading patterns like "Track 1:", "Chapter 2 -", "1 -", "2: ", etc.
+    let rawName = tracks[currentTrackIdx].name || '';
+    let cleanedName = rawName.replace(/^((Track|Chapter|Song|Part)\s*)?\d+\s*[:\-]\s*/i, '').trim();
+
+    // Remove conjunctions/articles
+    const conjunctions = ['the', 'at', 'or', 'of', 'a', 'an', 'and', 'but', 'for', 'nor', 'on', 'to', 'with', 'in', 'by'];
+    let words = cleanedName
+        .split(/\s+/)
+        .filter(word => conjunctions.indexOf(word.toLowerCase()) === -1)
+        .map(word => word.replace(/[,\.\!\?\;\:]+$/g, '')); // Remove trailing punctuation from each word
+
+    let searchTerm = words.join(',');
+
+    modalTitle.textContent = `Searching Icon for "${searchTerm || 'Track'}"`;
+    modalSearchInput.value = searchTerm;
+    lastSearchTerm = searchTerm;
+    searchIcons(searchTerm);
     modalSearchInput.focus();
 }
 
@@ -194,6 +221,43 @@ downloadTracksBtn.onclick = async function() {
         alert('Download failed');
     }
 };
+
+// Show modal
+pasteTracksBtn.onclick = () => {
+    pasteTracksModal.style.display = 'flex';
+    pasteTracksInput.value = '';
+    pasteTracksInput.focus();
+};
+
+// Close modal
+closePasteModalBtn.onclick = () => {
+    pasteTracksModal.style.display = 'none';
+    pasteTracksInput.value = '';
+};
+
+// Submit pasted tracks
+submitPasteTracksBtn.onclick = () => {
+    const lines = pasteTracksInput.value.split('\n').map(l => l.trim()).filter(l => l);
+    if (lines.length === 0) return;
+    // Add each line as a new track to the end of the list
+    const newTracks = lines.map((name, idx) => ({
+        id: Date.now() + idx,
+        name: name,
+        iconId: null
+    }));
+    tracks = tracks.concat(newTracks);
+    renderTrackList();
+    pasteTracksModal.style.display = 'none';
+    pasteTracksInput.value = '';
+};
+
+// Optional: Close modal on Escape key
+pasteTracksModal.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        pasteTracksModal.style.display = 'none';
+        pasteTracksInput.value = '';
+    }
+});
 
 // On page load, check for preTracks in localStorage
 const preTracks = localStorage.getItem('preTracks');
