@@ -111,3 +111,8 @@ async def download_icons(data: dict = Body(...)):
 @app.get("/tracklist", response_class=HTMLResponse)
 def tracklist(request: Request):
     return templates.TemplateResponse("tracklist.html", {"request": request})
+
+
+@app.get("/", response_class=HTMLResponse)
+def tracklist(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
